@@ -17,5 +17,6 @@ In order to use this fully built application, I recommend you strip the files:
 3. lib/main.dart.
 
 After removing these file from the build, create a new flutter project, and paste these into their respective areas, so that your cmake, and all other files are based on the source of your project, and not mine.
-Should run just fine afterwards.
+
+This Should run just fine afterwards.
    
