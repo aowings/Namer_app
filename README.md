@@ -11,6 +11,11 @@ A few resources to get you started if this is your first Flutter project:
 - [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
 - [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+In order to use this fully built application, I recommend you strip the files: 
+1. analysis_options.yaml
+2. pubspec.yaml
+3. lib/main.dart.
+
+After removing these file from the build, create a new flutter project, and paste these into their respective areas, so that your cmake, and all other files are based on the source of your project, and not mine.
+Should run just fine afterwards.
+   
