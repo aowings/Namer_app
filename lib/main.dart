@@ -31,53 +31,84 @@ class MyAppState extends ChangeNotifier {
     current = WordPair.random();
     notifyListeners();
   }
-   var favorites = <WordPair>[];
-    void toggleFavorite() {
+  var favorites = <WordPair>[];
+  void toggleFavorite() {
     if (favorites.contains(current)) {
       favorites.remove(current);
     } else {
       favorites.add(current);
-     }
-    notifyListeners();
     }
-}
-
-class MyHomePage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        children: [
-          SafeArea(
-            child: NavigationRail(
-              extended: false,
-              destinations: [
-                NavigationRailDestination(
-                  icon: Icon(Icons.home),
-                  label: Text('Home'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.favorite),
-                  label: Text('Favorites'),
-                ),
-              ],
-              selectedIndex: 0,
-              onDestinationSelected: (value) {
-                print('selected: $value');
-              },
-            ),
-          ),
-          Expanded(
-            child: Container(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              child: GeneratorPage(),
-            ),
-          ),
-        ],
-      ),
-    );
+    notifyListeners();
+  }
+  void removeFavorite(WordPair pair) {
+    favorites.remove(pair);
+    notifyListeners();
   }
 }
+
+class MyHomePage extends StatefulWidget {
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  var selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget page;
+    switch (selectedIndex) {
+      case 0:
+        page = GeneratorPage();
+        break;
+      case 1:
+        page = FavoritesPage();
+        break;
+      default:
+        throw UnimplementedError('no widget for $selectedIndex');
+    }
+
+    return LayoutBuilder(builder: (context, constraints) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Namer App'),
+        ),
+        body: Row(
+          children: [
+            SafeArea(
+              child: NavigationRail(
+                extended: constraints.maxWidth >= 600,
+                destinations: [
+                  NavigationRailDestination(
+                    icon: Icon(Icons.home),
+                    label: Text('Home'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.favorite),
+                    label: Text('Favorites'),
+                  ),
+                ],
+                selectedIndex: selectedIndex,
+                onDestinationSelected: (value) {
+                  setState(() {
+                    selectedIndex = value;
+                  });
+                },
+              ),
+            ),
+            Expanded(
+              child: Container(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                child: page,
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
 class GeneratorPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -122,31 +153,199 @@ class GeneratorPage extends StatelessWidget {
   }
 }
 
-// ...
-
+// BigCard widget
 class BigCard extends StatelessWidget {
   const BigCard({
     super.key,
     required this.pair,
-  }
-  );
+  });
 
   final WordPair pair;
 
   @override
   Widget build(BuildContext context) {
-       var theme = Theme.of(context);
-       var style = theme.textTheme.displayMedium!.copyWith(
-        color: theme.colorScheme.onPrimary,);
-        
+    var theme = Theme.of(context);
+    var style = theme.textTheme.displayMedium!.copyWith(
+      color: theme.colorScheme.onPrimary,
+    );
+
     return Card(
       color: theme.colorScheme.primary,
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Text(pair.asLowerCase, 
-        style: style,
-        semanticsLabel: pair.asPascalCase,
-         ),
+        child: Text(
+          pair.asLowerCase,
+          style: style,
+          semanticsLabel: pair.asPascalCase,
+        ),
+      ),
+    );
+  }
+}
+
+// favorites page
+class FavoritesPage extends StatefulWidget {
+  const FavoritesPage({super.key});
+
+  @override
+  State<FavoritesPage> createState() => _FavoritesPageState();
+}
+
+class _FavoritesPageState extends State<FavoritesPage> {
+  var isGridView = false;
+
+  @override
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+
+    if (appState.favorites.isEmpty) {
+      return Center(
+        child: Text('No favorites yet.'),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Favorites'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              setState(() {
+                isGridView = !isGridView;
+              });
+            },
+            icon: Icon(isGridView ? Icons.grid_view : Icons.list),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      isGridView = !isGridView;
+                    });
+                  },
+                  child: Text(isGridView ? 'List View' : 'Grid View'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // Clear all favorites
+                    appState.favorites.clear();
+                    appState.notifyListeners();
+                  },
+                  child: Text('Clear Favorites'),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: (isGridView)
+                ? GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16.0,
+                      mainAxisSpacing: 16.0,
+                    ),
+                    padding: const EdgeInsets.all(16.0),
+                    itemCount: appState.favorites.length,
+                    itemBuilder: (context, index) {
+                      var pair = appState.favorites[index];
+                      return Dismissible(
+                        key: Key(pair.asPascalCase),
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          child: const Padding(
+                            padding: EdgeInsets.only(right: 16.0),
+                            child: Icon(
+                              Icons.delete,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        onDismissed: (direction) {
+                          appState.removeFavorite(pair);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('"${pair.asLowerCase}" removed from favorites')),
+                          );
+                        },
+                        child: Card(
+                          color: Theme.of(context).colorScheme.primary,
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  pair.asLowerCase,
+                                  style: Theme.of(context).textTheme.displayMedium!.copyWith(
+                                    color: Theme.of(context).colorScheme.onPrimary,
+                                  ),
+                                  semanticsLabel: pair.asPascalCase,
+                                ),
+                                IconButton(
+                                  onPressed: () {
+                                    appState.removeFavorite(pair);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('"${pair.asLowerCase}" removed from favorites')),
+                                    );
+                                  },
+                                  icon: Icon(Icons.delete),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                : ListView.builder(
+                    itemCount: appState.favorites.length,
+                    itemBuilder: (context, index) {
+                      var pair = appState.favorites[index];
+                      return Dismissible(
+                        key: Key(pair.asPascalCase),
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          child: const Padding(
+                            padding: EdgeInsets.only(right: 16.0),
+                            child: Icon(
+                              Icons.delete,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        onDismissed: (direction) {
+                          appState.removeFavorite(pair);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('"${pair.asLowerCase}" removed from favorites')),
+                          );
+                        },
+                        child: ListTile(
+                          leading: Icon(Icons.favorite),
+                          title: Text(pair.asLowerCase),
+                          trailing: IconButton(
+                            onPressed: () {
+                              appState.removeFavorite(pair);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('"${pair.asLowerCase}" removed from favorites')),
+                              );
+                            },
+                            icon: Icon(Icons.delete),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }
